@@ -17,4 +17,7 @@
 
 #define IDLE				  0U
 #define BUSY				  1U
+
+#define SINGLE				  0U
+#define CHAIN				  1U
 #endif

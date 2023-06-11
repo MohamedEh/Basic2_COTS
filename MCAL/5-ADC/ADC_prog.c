@@ -13,6 +13,12 @@ static void (*ADC_pvNotificationFunc)(void) = NULL;
 
 static uint8 ADC_u8BusyFlag = IDLE ;
 
+static uint8 ADC_u8ConversionType = SINGLE;
+
+static uint8 ADC_u8Counter=0U;
+
+static ADC_ChainConfig_t *ADC_pChainConfig=NULL;
+
 void ADC_voidInit(void){
 
 	/*Reference Selection AVCC pin*/
@@ -37,12 +43,13 @@ void ADC_voidInit(void){
 	SET_BIT(ADCSRA,ADCSRA_ADEN);
 }
 
-uint8 ADC_u8StartConversionSynch(ADC_Channel_t copy_u8Channel,uint16* copy_pu16DigResult){
+uint8 ADC_u8StartSingleConversionSynch(ADC_Channel_t copy_u8Channel,uint16* copy_pu16DigResult){
 
 	uint8 Local_u8ErrorState=OK;
 
 	if(copy_pu16DigResult!=NULL){
 		if(ADC_u8BusyFlag==IDLE){
+
 
 			uint32 Local_u32Counter=0;
 
@@ -91,13 +98,15 @@ uint8 ADC_u8StartConversionSynch(ADC_Channel_t copy_u8Channel,uint16* copy_pu16D
 	return Local_u8ErrorState;
 }
 
-uint8 ADC_u8StartConversionAsynch(ADC_Channel_t copy_u8Channel,uint16* copy_pu16DigResult,void (*copy_pvNotificationFunc)(void)){
+uint8 ADC_u8StartSingleConversionAsynch(ADC_Channel_t copy_u8Channel,uint16* copy_pu16DigResult,void (*copy_pvNotificationFunc)(void)){
 	uint8 Local_u8ErrorState=OK;
 
 
 
 	if((copy_pu16DigResult!=NULL)&&(copy_pvNotificationFunc!=NULL)){
 		if(ADC_u8BusyFlag==IDLE){
+			/*Type of Conversion is now single*/
+			ADC_u8ConversionType = SINGLE;
 
 			/*ADC is now busy*/
 			ADC_u8BusyFlag=BUSY;
@@ -131,22 +140,100 @@ uint8 ADC_u8StartConversionAsynch(ADC_Channel_t copy_u8Channel,uint16* copy_pu16
 	return Local_u8ErrorState;
 }
 
+
+uint8 ADC_u8StartChainConversionAsynch(const ADC_ChainConfig_t *copy_pChainConfig){
+	uint8 Local_u8ErrorState=OK;
+
+	if(copy_pChainConfig!=NULL){
+		if(ADC_u8BusyFlag==IDLE){
+			/*Type of Conversion is now chain*/
+			ADC_u8ConversionType = CHAIN;
+
+			/*ADC is now busy*/
+			ADC_u8BusyFlag=BUSY;
+
+			/*Convert struct to global*/
+			ADC_pChainConfig=copy_pChainConfig;
+
+			ADC_u8Counter=0U;
+
+			/*Set The first Channel*/
+			ADMUX &= CHANNEL_SELECTION_MASK; /*Clear The Channel Selection Bits*/
+			ADMUX |= ADC_pChainConfig->ADC_CONVERSION_CHANNELS[ADC_u8Counter];
+
+			/*Start Conversion*/
+			SET_BIT(ADCSRA, ADCSRA_ADSC);
+
+			/*Enable ADC Conversion Complete Interrupt*/
+			SET_BIT(ADCSRA,ADCSRA_ADIE);
+
+		}
+		else{
+			Local_u8ErrorState = BUSY_ERR;
+		}
+	}
+	else{
+		Local_u8ErrorState=NULL_PTR;
+	}
+
+	return Local_u8ErrorState;
+}
+
 void __vector_16 (void)  __attribute__((signal));
 void __vector_16 (void){
+	if(ADC_u8ConversionType==SINGLE){
 #if ADC_u8RESOLUTION == EIGHT_BITS
-	*ADC_pu16DigResult=(uint16)ADCH;
+		*ADC_pu16DigResult=(uint16)ADCH;
 #elif ADC_u8RESOLUTION ==TEN_BITS
-	*ADC_pu16DigResult=ADC;
+		*ADC_pu16DigResult=ADC;
 #endif
-	/*ADC interrupt disable*/
-	CLR_BIT(ADCSRA,ADCSRA_ADIE);
+		/*ADC interrupt disable*/
+		CLR_BIT(ADCSRA,ADCSRA_ADIE);
 
-	/*ADC is now IDLE*/
-	ADC_u8BusyFlag=IDLE;
+		/*ADC is now IDLE*/
+		ADC_u8BusyFlag=IDLE;
 
-	/*Invoke the callback notification function*/
-	if(ADC_pvNotificationFunc!=NULL){
-		ADC_pvNotificationFunc();
+		/*Invoke the callback notification function*/
+		if(ADC_pvNotificationFunc!=NULL){
+			ADC_pvNotificationFunc();
+		}
+		else{
+			//Do nothing
+		}
+	}
+	else if(ADC_u8ConversionType==CHAIN){
+#if ADC_u8RESOLUTION == EIGHT_BITS
+		ADC_pChainConfig->ADC_CONVERSION_RESULTS[ADC_u8Counter]=(uint16)ADCH;
+#elif ADC_u8RESOLUTION ==TEN_BITS
+		ADC_pChainConfig->ADC_CONVERSION_RESULTS[ADC_u8Counter]=ADC;
+#endif
+		ADC_u8Counter++;
+		if(ADC_u8Counter==ADC_pChainConfig->ADC_CONVERSION_NO){
+
+			/*ADC interrupt disable*/
+			CLR_BIT(ADCSRA,ADCSRA_ADIE);
+
+			/*ADC is now IDLE*/
+			ADC_u8BusyFlag=IDLE;
+
+			/*Invoke the callback notification function*/
+			if(ADC_pChainConfig->copy_pvNotificationFunc!=NULL){
+				ADC_pChainConfig->copy_pvNotificationFunc();
+			}
+			else{
+				//Do nothing
+			}
+
+			ADC_u8Counter=0U;
+		}
+		else{
+
+			/*Set The Req. Channel*/
+			ADMUX &= CHANNEL_SELECTION_MASK; /*Clear The Channel Selection Bits*/
+			ADMUX |= ADC_pChainConfig->ADC_CONVERSION_CHANNELS[ADC_u8Counter];
+			/*Start Conversion*/
+			SET_BIT(ADCSRA, ADCSRA_ADSC);
+		}
 	}
 	else{
 		//Do nothing
