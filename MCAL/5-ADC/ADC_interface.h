@@ -34,10 +34,23 @@ typedef enum{
 	ADC4_POS_ADC2_NEG_1X_GAIN,
 }ADC_Channel_t;
 
+
+typedef struct{
+
+	uint8 ADC_CONVERSION_NO;
+	ADC_Channel_t* ADC_CONVERSION_CHANNELS;
+	uint16* ADC_CONVERSION_RESULTS;
+	void(*copy_pvNotificationFunc)(void);
+
+}ADC_ChainConfig_t;
+
+
 void ADC_voidInit(void);
 
-uint8 ADC_u8StartConversionSynch(ADC_Channel_t copy_u8Channel,uint16* copy_pu16DigResult);
+uint8 ADC_u8StartSingleConversionSynch(ADC_Channel_t copy_u8Channel,uint16* copy_pu16DigResult);
 
-uint8 ADC_u8StartConversionAsynch(ADC_Channel_t copy_u8Channel,uint16* copy_pu16DigResult,void (*copy_pvNotificationFunc)(void));
+uint8 ADC_u8StartSingleConversionAsynch(ADC_Channel_t copy_u8Channel,uint16* copy_pu16DigResult,void (*copy_pvNotificationFunc)(void));
+
+uint8 ADC_u8StartChainConversionAsynch(const ADC_ChainConfig_t *copy_pChainConfig);
 
 #endif
