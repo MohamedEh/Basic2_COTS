@@ -1,0 +1,9 @@
+#ifndef _ULTRASONIC_CFG_H
+#define _ULTRASONIC_CFG_H
+
+
+#define ULTRASONIC_TRIG_PORT		DIO_PORTB
+
+#define ULTRASONIC_TRIG_PIN			DIO_PIN0
+
+#endif

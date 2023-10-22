@@ -42,7 +42,12 @@ void ADC_voidInit(void){
 	/*ADC Enable*/
 	SET_BIT(ADCSRA,ADCSRA_ADEN);
 }
-
+/**
+ * @brief This Function is used to start single channel conversion and get bach with the result
+ * @param copy_u8Channel : the required analog channel to convert, choose from option @ADC_Channel_t
+ * @param copy_pu16DigResult : out parameter for the digital result
+ * @return error state
+ */
 uint8 ADC_u8StartSingleConversionSynch(ADC_Channel_t copy_u8Channel,uint16* copy_pu16DigResult){
 
 	uint8 Local_u8ErrorState=OK;

@@ -91,32 +91,6 @@ void CLCD_voidInit(void){
 	CLCD_voidSendCommand(1);
 }
 
-void CLCD_voidWriteNumber(sint32 copy_s32Number){
-	char Local_chNumber[10];
-	uint8 Local_u8RightDigit, Local_u8Counter=0;
-	sint8 Local_u8Iterator;
-	if(copy_s32Number==0){
-		CLCD_voidSendData('0');
-		return;
-	}
-	else if(copy_s32Number<0){
-		/*Number is Negative,print -ve sign*/
-		CLCD_voidSendData('-');
-		copy_s32Number *=-1;
-
-	}
-	while(copy_s32Number!=0){
-		Local_u8RightDigit = copy_s32Number % 10; //Get the right most digit
-		copy_s32Number /= 10;					//Get rid of the right most digit
-		Local_chNumber[Local_u8Counter] = Local_u8RightDigit+'0';
-		Local_u8Counter++;
-	}
-	for(Local_u8Iterator=(sint8)Local_u8Counter-1;Local_u8Iterator>=0;Local_u8Iterator--){
-		CLCD_voidSendData(Local_chNumber[(uint8)Local_u8Iterator]);
-
-	}
-}
-
 void CLCD_voidGoToXY(uint8 copy_u8XPos, uint8 copy_u8YPos){
 	uint8 Local_u8DDRamAdd = (copy_u8YPos*0x40)+copy_u8XPos;
 	/*if (copy_u8XPos)==0u{
@@ -159,3 +133,77 @@ uint8 CLCD_u8WriteSpecialCharacter(uint8 copy_u8PatternNumber,uint8 copy_pu8Patt
 	}
 	return Local_u8ErrorStatus;
 }
+
+
+
+uint8 CLCD_u8SendString(uint8 const copy_u8String[]){
+	uint8 Local_u8ErrorStatus = OK ;
+	if(copy_u8String != NULL){
+		uint8 Local_u8Iterator=0;
+		while(copy_u8String[Local_u8Iterator]!=NULL){
+			CLCD_voidSendData(copy_u8String[Local_u8Iterator]);
+			Local_u8Iterator ++;
+		}
+	}
+	else{
+		Local_u8ErrorStatus = NULL_PTR;
+	}
+	return Local_u8ErrorStatus;
+}
+void CLCD_voidSendNumber(sint32 copy_s32Number ){
+	sint32 Local_s32Left,Local_s32Right=copy_s32Number;
+	uint8 Local_u8Iterator,Local_u8Counter=0;
+	sint8 Local_u8Iterator2;
+	uint32 Local_u8Arr[40]={};
+	if(copy_s32Number>0){
+		Local_s32Left=Local_s32Right;
+		while(Local_s32Right!=0){
+			while((Local_s32Left / 10)!=0){
+				Local_s32Left /= 10;
+				Local_u8Counter ++;
+
+			}
+			for(Local_u8Iterator2=0;Local_u8Iterator2<Local_u8Counter+1;Local_u8Iterator2++){
+
+				Local_u8Arr[Local_u8Iterator2]=(Local_s32Right%10);
+				Local_s32Right /=10;
+			}
+			for(Local_u8Iterator2=Local_u8Counter;Local_u8Iterator2>=0;Local_u8Iterator2--){
+				CLCD_voidSendData(Local_u8Arr[Local_u8Iterator2]+48);
+			}
+
+			Local_u8Counter=0;
+
+
+		}
+	}
+	else if(copy_s32Number<0){
+		Local_s32Right*= -1;
+		CLCD_voidSendData('-');
+		Local_s32Left=Local_s32Right;
+		while(Local_s32Right!=0){
+			while((Local_s32Left / 10)!=0){
+				Local_s32Left /= 10;
+				Local_u8Counter ++;
+
+			}
+			for(Local_u8Iterator2=0;Local_u8Iterator2<Local_u8Counter+1;Local_u8Iterator2++){
+
+				Local_u8Arr[Local_u8Iterator2]=(Local_s32Right%10);
+				Local_s32Right /=10;
+			}
+			for(Local_u8Iterator2=Local_u8Counter;Local_u8Iterator2>=0;Local_u8Iterator2--){
+				CLCD_voidSendData(Local_u8Arr[Local_u8Iterator2]+48);
+			}
+
+			Local_u8Counter=0;
+
+
+		}
+	}
+	else{
+		CLCD_voidSendData(48);
+	}
+
+}
+

@@ -17,4 +17,9 @@
 #define	CTC                         2U
 #define	FAST_PWM                    3U
 
+#define	NORMAL                      0U
+#define	TOGGLE				        1U
+#define	CLEAR                       2U
+#define	SET		                    3U
+
 #endif
